@@ -316,14 +316,6 @@ async def on_message(message: discord.Message):
 
 
 @bot.event
-async def on_ready():
-    await bot.change_presence(
-        status=discord.Status.online,
-        activity=discord.Game(name="サーバー｜監視中")
-    )
-    print(f"ログインしました: {bot.user}")
-
-@bot.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     # DM / bot自身のリアクションは対象外
     if payload.guild_id is None:
@@ -419,6 +411,17 @@ async def credit_reisho(
 # ------------------------------------------------------------
 MAX_RANKING_DISPLAY = 25  # Embed descriptionの長さを考慮した表示上限
 
+
+@bot.event
+async def on_ready():
+    total_members = sum(guild.member_count or 0 for guild in bot.guilds)
+
+    await bot.change_presence(
+        status=discord.Status.online,
+        activity=discord.Game(name=f"{len(bot.guilds)}サーバー｜{total_members}名を監視中")
+    )
+
+    print(f"ログインしました: {bot.user}")
 
 @bot.command(name="ranking")
 async def ranking_cmd(ctx: commands.Context):
