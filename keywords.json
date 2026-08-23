@@ -1,7 +1,7 @@
 {
   "threshold": 3,
   "patterns": [
-    { "pattern": "うお[wWｗＷ]{1,}😅", "weight": 3, "comment": "うおw😅" },
+    { "pattern": "[うぅウゥuU🇺][おぉオォoO🇴][wWｗＷ]*😅", "weight": 3, "comment": "うおw😅 (全パターン網羅)" },
     { "pattern": "どわー笑😅", "weight": 3, "comment": "どわー笑😅" },
     { "pattern": "ったく…[wWｗＷ]{1,}😅", "weight": 3, "comment": "ったく…w😅" },
     { "pattern": "かっこよ[wWｗＷ]{1,}😅", "weight": 3, "comment": "かっこよw😅" },
@@ -16,7 +16,7 @@
     { "pattern": "すごいなあキミ[wWｗＷ]{2,}😅👍", "weight": 3, "comment": "すごいなあキミww😅👍" },
     { "pattern": "ちょ[wWｗＷ]{1,}怒んなや[wWｗＷ]{1,}😅", "weight": 3, "comment": "ちょw怒んなやw😅" },
     { "pattern": "すごいね[！!]", "weight": 3, "comment": "すごいね！" },
-    { "pattern": "うお[wWｗＷ]*", "weight": 3, "comment": "うおｗ／うお" },
+    { "pattern": "[うぅウゥuU🇺][おぉオォoO🇴][wWｗＷ]*", "weight": 3, "comment": "うおｗ／うお (各種表記ゆれ・英字・絵文字対応)" },
     { "pattern": "かっけー[wWｗＷ]*", "weight": 3, "comment": "かっけーｗ／かっけー" },
     { "pattern": "かっこよ[wWｗＷ]*", "weight": 3, "comment": "かっこよｗ／かっこよ" },
     { "pattern": "お[、,]?\\s*おう", "weight": 3, "comment": "お、おう" },
