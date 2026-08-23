@@ -1,6 +1,7 @@
 {
   "threshold": 3,
   "patterns": [
+    { "pattern": ":regional_indicator_u::regional_indicator_o:", "weight": 3, "comment": "uo_emoji" },
     { "pattern": "うお[wWｗＷ]{1,}😅", "weight": 3, "comment": "うおw😅" },
     { "pattern": "どわー笑😅", "weight": 3, "comment": "どわー笑😅" },
     { "pattern": "ったく…[wWｗＷ]{1,}😅", "weight": 3, "comment": "ったく…w😅" },
@@ -20,7 +21,6 @@
     { "pattern": "かっけー[wWｗＷ]*", "weight": 3, "comment": "かっけーｗ／かっけー" },
     { "pattern": "かっこよ[wWｗＷ]*", "weight": 3, "comment": "かっこよｗ／かっこよ" },
     { "pattern": "お[、,]?\\s*おう", "weight": 3, "comment": "お、おう" },
-    { "pattern": ":regional_indicator_u: :regional_indicator_o:*", "weight": 3, "comment": ":regional_indicator_u: :regional_indicator_o:" },
     { "pattern": "きちー[wWｗＷ]*", "weight": 3, "comment": "きちーｗ／きちー" }
   ]
 }
