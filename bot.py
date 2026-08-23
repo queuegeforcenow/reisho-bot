@@ -16,7 +16,7 @@ from discord.ext import commands
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("reisho-bot")
 
-DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
+DISCORD_TOKEN = os.environ.get("MTU0MDk2NjQ0MDAxMjg3Nzg1NA.G9_qJA.1LAtW2DoWS4D1keVhDvBJwWp9zWYhtivgSj_Hw")
 COMMAND_PREFIX = os.environ.get("COMMAND_PREFIX", "!")
 EMOJI_NAME = os.environ.get("REISHO_EMOJI_NAME", "reisho")  # サーバーのカスタム絵文字名
 KEYWORDS_PATH = os.environ.get("KEYWORDS_PATH", "keywords.json")
