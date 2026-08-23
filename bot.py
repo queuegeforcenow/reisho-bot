@@ -206,21 +206,35 @@ async def on_message(message: discord.Message):
     # 回避対策：空白などを除去したもので単文字コンボをチェック
     stripped_for_combo = re.sub(r'[\s\u200B-\u200D\uFEFF]+', '', content)
 
-    # --- 「う」「お」単文字連投コンボ検知 ---
-    if stripped_for_combo in ("う", "お"):
+# --- 「う」「お」単文字連投コンボ検知 ---
+    # Discordの絵文字コード直打ち (:regional_indicator_u: など) を実際の絵文字に変換
+    check_text = content.replace(":regional_indicator_u:", "🇺").replace(":regional_indicator_o:", "🇴")
+    stripped_for_combo = normalize_text_for_reisho(check_text)
+
+    # 「う」系、「お」系のみで構成されているか（w、草、😅 が付いていてもアウトにする）
+    U_PATTERN = re.compile(r'^[うぅuU🇺]+[wWｗＷ草😅]*$')
+    O_PATTERN = re.compile(r'^[おぉoO🇴]+[wWｗＷ草😅]*$')
+
+    is_u = bool(U_PATTERN.match(stripped_for_combo))
+    is_o = bool(O_PATTERN.match(stripped_for_combo))
+
+    if is_u or is_o:
         key = (message.channel.id, message.author.id)
         history = _single_char_state.setdefault(key, [])
         now = discord.utils.utcnow()
         
         # 制限時間内の履歴だけ残す
         history[:] = [h for h in history if (now - h["timestamp"]).total_seconds() <= TEXT_COMBO_WINDOW_SECONDS]
-        history.append({"content": stripped_for_combo, "timestamp": now})
         
-        has_u = any(h["content"] == "う" for h in history)
-        has_o = any(h["content"] == "お" for h in history)
+        # UかOかを記録
+        char_type = "U" if is_u else "O"
+        history.append({"type": char_type, "timestamp": now})
+        
+        has_u = any(h["type"] == "U" for h in history)
+        has_o = any(h["type"] == "O" for h in history)
         
         if has_u and has_o:
-            combo_text = "う→お（または お→う）の連続投稿"
+            combo_text = "う→お（絵文字・w付き・英語などの連投）"
             await credit_reisho(
                 guild=message.guild,
                 reaction_target=message,
