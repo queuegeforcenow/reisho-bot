@@ -413,6 +413,18 @@ async def shoki_cmd(ctx: commands.Context):
     except: pass
     await ctx.reply("解禁状態、ニックネーム、アイコンを初期状態に戻しました。")
 
+@bot.command(name="say")
+@commands.has_permissions(administrator=True)
+async def say_text_cmd(ctx: commands.Context, *, text: str):
+    # コマンドを打った本人のメッセージを消す（権限がある場合）
+    try:
+        await ctx.message.delete()
+    except discord.HTTPException:
+        pass
+    
+    # Botとしてメッセージを送信
+    await ctx.send(text)
+
 @bot.command(name="ranking")
 async def ranking_cmd(ctx: commands.Context):
     ranked = await get_ranking(ctx.guild.id)
