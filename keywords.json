@@ -1,0 +1,25 @@
+{
+  "threshold": 3,
+  "patterns": [
+    { "pattern": "うお[wWｗＷ]{1,}😅", "weight": 3, "comment": "うおw😅" },
+    { "pattern": "どわー笑😅", "weight": 3, "comment": "どわー笑😅" },
+    { "pattern": "ったく…[wWｗＷ]{1,}😅", "weight": 3, "comment": "ったく…w😅" },
+    { "pattern": "かっこよ[wWｗＷ]{1,}😅", "weight": 3, "comment": "かっこよw😅" },
+    { "pattern": "えぐー！笑😅", "weight": 3, "comment": "えぐー！笑😅" },
+    { "pattern": "冗談ですやん！！[wWｗＷ]{1,}🫲😅", "weight": 3, "comment": "冗談ですやん！！w🫲😅" },
+    { "pattern": "きちー[wWｗＷ]{2,}😅🤚", "weight": 3, "comment": "きちーww😅🤚" },
+    { "pattern": "おもろいなあ！[wWｗＷ]{2,}😅👍", "weight": 3, "comment": "おもろいなあ！ww😅👍" },
+    { "pattern": "ど、どした？笑😅", "weight": 3, "comment": "ど、どした？笑😅" },
+    { "pattern": "ちょ[wWｗＷ]{1,}1回落ち着け[wWｗＷ]{1,}落ち着け[wWｗＷ]{1,}😅", "weight": 3, "comment": "ちょw1回落ち着けw落ち着けw😅" },
+    { "pattern": "ええて[wWｗＷ]{1,}😅🤚", "weight": 3, "comment": "ええてw😅🤚" },
+    { "pattern": "ちょ[wWｗＷ]{1,}お前必死やん[wWｗＷ]{2,}😅", "weight": 3, "comment": "ちょwお前必死やんww😅" },
+    { "pattern": "すごいなあキミ[wWｗＷ]{2,}😅👍", "weight": 3, "comment": "すごいなあキミww😅👍" },
+    { "pattern": "ちょ[wWｗＷ]{1,}怒んなや[wWｗＷ]{1,}😅", "weight": 3, "comment": "ちょw怒んなやw😅" },
+    { "pattern": "すごいね[！!]", "weight": 3, "comment": "すごいね！" },
+    { "pattern": "うお[wWｗＷ]*", "weight": 3, "comment": "うおｗ／うお" },
+    { "pattern": "かっけー[wWｗＷ]*", "weight": 3, "comment": "かっけーｗ／かっけー" },
+    { "pattern": "かっこよ[wWｗＷ]*", "weight": 3, "comment": "かっこよｗ／かっこよ" },
+    { "pattern": "お[、,]?\\s*おう", "weight": 3, "comment": "お、おう" },
+    { "pattern": "きちー[wWｗＷ]*", "weight": 3, "comment": "きちーｗ／きちー" }
+  ]
+}
