@@ -1,7 +1,6 @@
 {
   "threshold": 3,
   "patterns": [
-    { "pattern": "🇺🇴", "weight": 3, "comment": "uo_emoji" }
     { "pattern": "うお[wWｗＷ]{1,}😅", "weight": 3, "comment": "うおw😅" },
     { "pattern": "どわー笑😅", "weight": 3, "comment": "どわー笑😅" },
     { "pattern": "ったく…[wWｗＷ]{1,}😅", "weight": 3, "comment": "ったく…w😅" },
