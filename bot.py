@@ -450,6 +450,33 @@ async def on_ready():
     if not update_presence.is_running():
         update_presence.start()
 
+@bot.command(name="shoki")
+@commands.has_permissions(administrator=True)  # 管理者権限を持つユーザーのみ実行可能
+async def shoki_cmd(ctx: commands.Context):
+    async with _state_lock:
+        state = _load_state()
+        state["unlocked"] = False
+        _save_state(state)
+
+    # 全サーバーのニックネームを初期化（LOCKED_NICK = "???"）
+    for guild in bot.guilds:
+        await _set_nick(guild, LOCKED_NICK)
+
+    # Bot自体のアイコンを削除（デフォルト状態に戻す）
+    try:
+        await bot.user.edit(avatar=None)
+        log.info("botのアイコンをデフォルトに初期化しました。")
+    except discord.HTTPException as e:
+        log.warning("アイコンの初期化に失敗しました: %s", e)
+
+    await ctx.reply("解禁状態、ニックネーム、アイコンを初期状態に戻しました。")
+
+
+@shoki_cmd.error
+async def shoki_cmd_error(ctx: commands.Context, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.reply("このコマンドは管理者権限を持つユーザーのみ実行できます。")
+
 @bot.command(name="ranking")
 async def ranking_cmd(ctx: commands.Context):
     ranked = await get_ranking(ctx.guild.id)  # 全件取得
