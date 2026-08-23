@@ -8,7 +8,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 # ------------------------------------------------------------
 # 設定
@@ -241,20 +241,20 @@ async def unlock_bot_globally() -> None:
             ICON_PATH,
         )
 
-
-@bot.event
-async def on_ready():
-    global BOT_READY_AT
-    BOT_READY_AT = discord.utils.utcnow()
-    log.info("ログイン完了: %s (id=%s) / 基準時刻=%s", bot.user, bot.user.id, BOT_READY_AT.isoformat())
-    for guild in bot.guilds:
-        await apply_appearance_to_guild(guild)
-
-
 @bot.event
 async def on_guild_join(guild: discord.Guild):
     log.info("新しいサーバーに参加しました: %s", guild.name)
     await apply_appearance_to_guild(guild)
+
+    if update_presence.is_running():
+        await update_presence()
+
+@bot.event
+async def on_guild_remove(guild: discord.Guild):
+    log.info("サーバーから退出しました: %s", guild.name)
+
+    if update_presence.is_running():
+        await update_presence()
 
 
 @bot.event
@@ -411,17 +411,44 @@ async def credit_reisho(
 # ------------------------------------------------------------
 MAX_RANKING_DISPLAY = 25  # Embed descriptionの長さを考慮した表示上限
 
-
-@bot.event
-async def on_ready():
-    total_members = sum(guild.member_count or 0 for guild in bot.guilds)
+@tasks.loop(seconds=30)
+async def update_presence():
+    total_members = sum(
+        guild.member_count or 0
+        for guild in bot.guilds
+    )
 
     await bot.change_presence(
         status=discord.Status.online,
-        activity=discord.Game(name=f"{len(bot.guilds)}サーバー｜{total_members}名を監視中")
+        activity=discord.Game(
+            name=f"{len(bot.guilds)}サーバー｜{total_members}名を監視中"
+        )
     )
 
-    print(f"ログインしました: {bot.user}")
+
+@update_presence.before_loop
+async def before_update_presence():
+    await bot.wait_until_ready()
+
+
+@bot.event
+async def on_ready():
+    global BOT_READY_AT
+
+    BOT_READY_AT = discord.utils.utcnow()
+
+    log.info(
+        "ログイン完了: %s (id=%s) / 基準時刻=%s",
+        bot.user,
+        bot.user.id,
+        BOT_READY_AT.isoformat()
+    )
+
+    for guild in bot.guilds:
+        await apply_appearance_to_guild(guild)
+
+    if not update_presence.is_running():
+        update_presence.start()
 
 @bot.command(name="ranking")
 async def ranking_cmd(ctx: commands.Context):
