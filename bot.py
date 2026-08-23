@@ -466,6 +466,66 @@ async def ranking_cmd(ctx: commands.Context):
         embed.set_footer(text=f"上位{MAX_RANKING_DISPLAY}人のみ表示しています（全{len(ranked)}人中）")
     await ctx.reply(embed=embed)
 
+# ------------------------------------------------------------
+# Discordチャンネルを使った完全自動バックアップ＆復元システム
+# ------------------------------------------------------------
+BACKUP_CHANNEL_ID = int(os.environ.get("BACKUP_CHANNEL_ID", "0"))
+_last_backup_message_id = None
+
+async def auto_backup_to_discord():
+    """JSONファイルを指定チャンネルに自動送信する"""
+    global _last_backup_message_id
+    if BACKUP_CHANNEL_ID == 0:
+        return
+        
+    channel = bot.get_channel(BACKUP_CHANNEL_ID)
+    if not channel:
+        return
+
+    try:
+        # 古いバックアップメッセージがあれば削除（チャンネルが埋まらないようにする）
+        if _last_backup_message_id:
+            try:
+                old_msg = await channel.fetch_message(_last_backup_message_id)
+                await old_msg.delete()
+            except discord.HTTPException:
+                pass
+
+        # 最新のJSONファイルを送信
+        if os.path.exists(COUNTS_PATH):
+            file = discord.File(COUNTS_PATH, filename="reisho_counts.json")
+            msg = await channel.send("🔄 【自動バックアップ】ランキングデータ", file=file)
+            _last_backup_message_id = msg.id
+    except Exception as e:
+        log.error(f"自動バックアップに失敗しました: {e}")
+
+async def auto_restore_from_discord():
+    """起動時にDiscordチャンネルから最新のJSONをダウンロードして復元する"""
+    if BACKUP_CHANNEL_ID == 0:
+        return
+        
+    channel = bot.get_channel(BACKUP_CHANNEL_ID)
+    if not channel:
+        return
+        
+    try:
+        # チャンネルの最新メッセージを最大10件遡ってファイルを探す
+        async for msg in channel.history(limit=10):
+            if msg.author == bot.user and msg.attachments:
+                att = msg.attachments[0]
+                if att.filename.endswith('.json'):
+                    file_bytes = await att.read()
+                    data = json.loads(file_bytes.decode('utf-8'))
+                    
+                    # データをローカルに保存
+                    with open(COUNTS_PATH, "w", encoding="utf-8") as f:
+                        json.dump(data, f, ensure_ascii=False, indent=2)
+                        
+                    log.info("✅ 起動時の自動データ復元が完了しました！")
+                    return
+    except Exception as e:
+        log.error(f"自動復元に失敗しました: {e}")
+
 @bot.command(name="reisho_help")
 async def help_cmd(ctx: commands.Context):
     text = (
