@@ -330,7 +330,8 @@ async def credit_reisho(
     except discord.HTTPException: pass
 
     await unlock_bot_globally()
-
+    
+    await auto_backup_to_discord()
 
 # ------------------------------------------------------------
 # スラッシュコマンド (キーワード追加・削除・データバックアップ)
@@ -411,6 +412,11 @@ async def before_update_presence():
 async def on_ready():
     global BOT_READY_AT
     BOT_READY_AT = discord.utils.utcnow()
+    
+    # ▼ これを追加（起動直後にDiscordからデータをダウンロードして復元）
+    await bot.wait_until_ready()
+    await auto_restore_from_discord()
+    
     log.info("ログイン完了: %s", bot.user)
     for guild in bot.guilds: await apply_appearance_to_guild(guild)
     if not update_presence.is_running(): update_presence.start()
