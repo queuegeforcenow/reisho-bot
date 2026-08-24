@@ -194,6 +194,34 @@ def calc_reisho_score(text: str):
             match_count += len(matches)
     return score, match_count
 
+# ------------------------------------------------------------
+# VC通知用音声の生成処理 (ピンポン音 + TTS)
+# ------------------------------------------------------------
+def create_notification_audio(username: str) -> str:
+    """ピンポン音とTTSを合成してWAVファイルを出力する"""
+    # 1. ピンポン音（ド・ミのサイン波で簡易作成）
+    tone1 = Sine(523.25).to_audio_segment(duration=300).apply_gain(-10)  # C5
+    tone2 = Sine(659.25).to_audio_segment(duration=500).apply_gain(-10)  # E5
+    ping_pong = tone1 + tone2
+    
+    # 2. TTS生成
+    tts_text = f"{username}さんが冷笑をしました。"
+    tts = gTTS(text=tts_text, lang='ja')
+    tts_file = f"tts_{username}.mp3"
+    tts.save(tts_file)
+    
+    # 3. 結合処理
+    tts_audio = AudioSegment.from_mp3(tts_file)
+    combined = ping_pong + AudioSegment.silent(duration=200) + tts_audio
+    
+    output_file = f"notify_{username}.wav"
+    combined.export(output_file, format="wav")
+    
+    # 一時ファイルの削除
+    if os.path.exists(tts_file):
+        os.remove(tts_file)
+    return output_file
+
 
 # ------------------------------------------------------------
 # カウント永続化
@@ -388,6 +416,11 @@ intents = discord.Intents.default()
 intents.message_content = True  # Developer PortalでもMESSAGE CONTENT INTENTを有効にすること
 intents.guilds = True
 intents.members = True
+
+intents.voice_states = True  # VCの状態取得を有効化
+
+# VC音声認識用Whisperモデル (CPU環境向けに軽量なtinyモデルを使用)
+whisper_model = faster_whisper.WhisperModel("tiny", device="cpu", compute_type="int8")
 
 bot = commands.Bot(command_prefix=COMMAND_PREFIX, intents=intents, help_command=None)
 
@@ -631,6 +664,104 @@ async def credit_reisho(
     # bot全体で初めての検知なら、ニックネーム/アイコンを解禁する
     await unlock_bot_globally()
 
+# bot全体で初めての検知なら、ニックネーム/アイコンを解禁する
+    await unlock_bot_globally()
+
+# ============================================================
+# ↓↓↓ ここから④の追加コードを貼り付ける ↓↓↓
+# ============================================================
+
+# ------------------------------------------------------------
+# VC音声受信・冷笑検知クラス
+# ------------------------------------------------------------
+class ReishoAudioSink(voice_recv.AudioSink):
+    def __init__(self, vc, text_channel, guild: discord.Guild):
+        super().__init__()
+        self.vc = vc
+        self.text_channel = text_channel
+        self.guild = guild
+        self.user_buffers = {}
+    
+    def wants_opus(self):
+        return False  # PCM(解凍済み音声)で受信
+
+    def write(self, user, data):
+        if not user or user.bot:
+            return
+            
+        if user.id not in self.user_buffers:
+            self.user_buffers[user.id] = bytearray()
+            
+        self.user_buffers[user.id].extend(data.pcm)
+        
+        # 約3秒分（48kHz, 2ch, 16bit = 3840bytes * 50fps * 3秒）溜まったら文字起こしへ回す
+        if len(self.user_buffers[user.id]) > 3840 * 50 * 3:
+            pcm_data = self.user_buffers.pop(user.id)
+            asyncio.run_coroutine_threadsafe(
+                self.process_audio(user, pcm_data),
+                bot.loop
+            )
+
+    async def process_audio(self, user, pcm_data):
+        # 16kHz モノラル WAVに変換（Whisper最適化）
+        audio_segment = AudioSegment(
+            data=bytes(pcm_data),
+            sample_width=2,
+            frame_rate=48000,
+            channels=2
+        )
+        audio_segment = audio_segment.set_frame_rate(16000).set_channels(1)
+        wav_io = io.BytesIO()
+        audio_segment.export(wav_io, format="wav")
+        wav_io.seek(0)
+
+        # 文字起こし実行 (重いため非同期スレッドで処理)
+        segments, _ = await bot.loop.run_in_executor(
+            None, 
+            lambda: whisper_model.transcribe(wav_io, language="ja")
+        )
+        text = "".join([s.text for s in segments]).strip()
+
+        if text:
+            score, match_count = calc_reisho_score(text)
+            if score >= THRESHOLD:
+                amount = max(match_count, 1)
+                
+                # 既存のカウント保存システムへ統合
+                total = await increment_count(self.guild.id, user.id, amount=amount)
+                
+                # チャート通知メッセージ
+                extra_note = f"（今回 +{amount}）" if amount > 1 else ""
+                await self.text_channel.send(
+                    f"🎙️ **VC冷笑検知**\n"
+                    f"{user.mention} 冷笑を検知しました！ 内容：「{text}」{extra_note}\n"
+                    f"(このサーバーでの累計冷笑回数: {total}回)"
+                )
+                
+                # アイコン/ニックネーム解禁チェック
+                await unlock_bot_globally()
+
+                # VCでピンポン音＋TTS音声を再生
+                audio_file = create_notification_audio(user.display_name)
+                if not self.vc.is_playing():
+                    source = discord.FFmpegPCMAudio(audio_file)
+                    
+                    def after_play(error):
+                        if os.path.exists(audio_file):
+                            os.remove(audio_file)
+
+                    self.vc.play(source, after=after_play)
+
+# ============================================================
+# ↑↑↑ ここまでが④の追加コード ↑↑↑
+# ============================================================
+
+
+# ------------------------------------------------------------
+# スラッシュコマンド: 冷笑ワードの追加/削除/一覧
+# (標準搭載ワードは保護され、追加したワードのみ削除可能)
+# ------------------------------------------------------------
+@bot.tree.command(name="reisho_add_word", description="冷笑検知ワードを追加します(管理者限定)")
 
 # ------------------------------------------------------------
 # スラッシュコマンド: 冷笑ワードの追加/削除/一覧
@@ -865,6 +996,32 @@ async def help_cmd(ctx: commands.Context):
         "- `/reisho_add_word` `/reisho_remove_word` `/reisho_list_words` : 冷笑ワードの追加/削除/一覧（追加・削除は管理者限定）"
     )
     await ctx.reply(text)
+
+# ------------------------------------------------------------
+# コマンド: VC接続 / 退出
+# ------------------------------------------------------------
+@bot.command(name="vc_join")
+async def vc_join_cmd(ctx: commands.Context):
+    if not ctx.author.voice:
+        await ctx.reply("先にボイスチャンネルに入った状態で実行してください。")
+        return
+
+    channel = ctx.author.voice.channel
+    try:
+        vc = await channel.connect(cls=voice_recv.VoiceRecvClient)
+        vc.listen(ReishoAudioSink(vc, ctx.channel, ctx.guild))
+        await ctx.reply(f"🎙️ `{channel.name}` に接続しました。冷笑のリアルタイム検知を開始します。")
+    except discord.ClientException:
+        await ctx.reply("すでにボイスチャンネルに接続されています。")
+
+@bot.command(name="vc_leave")
+async def vc_leave_cmd(ctx: commands.Context):
+    if ctx.voice_client:
+        ctx.voice_client.stop_listening()
+        await ctx.voice_client.disconnect()
+        await ctx.reply("ボイスチャンネルから退出しました。")
+    else:
+        await ctx.reply("ボイスチャンネルに接続していません。")
 
 
 # ------------------------------------------------------------
