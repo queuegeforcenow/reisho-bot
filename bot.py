@@ -8,6 +8,11 @@ import datetime
 import unicodedata
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
+from gtts import gTTS
+from pydub import AudioSegment
+from pydub.generators import Sine
+import faster_whisper
+from discord.ext import voice_recv
 
 import discord
 from discord import app_commands
