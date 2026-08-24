@@ -685,6 +685,10 @@ class ReishoAudioSink(voice_recv.AudioSink):
     def wants_opus(self):
         return False  # PCM(解凍済み音声)で受信
 
+    def cleanup(self):
+        # 終了時のクリーンアップ処理（必須）
+        self.user_buffers.clear()
+
     def write(self, user, data):
         if not user or user.bot:
             return
