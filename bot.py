@@ -1001,6 +1001,60 @@ async def help_cmd(ctx: commands.Context):
     await ctx.reply(text)
 
 # ------------------------------------------------------------
+# ランキングのグローバルリセットコマンド
+# ------------------------------------------------------------
+@bot.tree.command(name="reset_ranking", description="【危険】全サーバーのランキングデータを初期化し、全サーバーに通知します")
+@app_commands.default_permissions(administrator=True)
+async def reset_ranking(interaction: discord.Interaction):
+    # 全サーバーへの通知は少し時間がかかる場合があるため、一旦「考え中...」状態にする
+    await interaction.response.defer(ephemeral=False)
+    
+    # 1. ランキングデータの初期化（空っぽのデータを保存して上書きする）
+    async with _counts_lock:
+        _save_counts({})
+        
+    # (バックアップ用チャンネルにも空のデータを自動アップロードして同期)
+    await auto_backup_to_discord()
+
+    success_count = 0
+    failed_guilds = []
+
+    # 2. 参加している全サーバーにリセット通知を送る
+    for guild in bot.guilds:
+        # まずはサーバーの「システムチャンネル（ようこそメッセージ等が出る場所）」を候補にする
+        target_channel = guild.system_channel
+        
+        # システムチャンネルが無い、またはBotに書き込み権限が無い場合は、発言できる最初のチャンネルを探す
+        if not target_channel or not target_channel.permissions_for(guild.me).send_messages:
+            target_channel = next(
+                (ch for ch in guild.text_channels if ch.permissions_for(guild.me).send_messages), 
+                None
+            )
+
+        if target_channel:
+            try:
+                embed = discord.Embed(
+                    title="📢 ランキングリセットのお知らせ",
+                    description="全サーバーの**冷笑検知ランキング**がリセットされました！\n今日からまた新たなカウントが始まります。",
+                    color=discord.Color.red()
+                )
+                await target_channel.send(embed=embed)
+                success_count += 1
+            except Exception:
+                failed_guilds.append(guild.name)
+        else:
+            failed_guilds.append(guild.name)
+
+    # 3. コマンド実行者に最終結果を報告
+    result_msg = f"✅ 全サーバーのランキングデータをリセットし、データファイル(`reisho_counts.json`)を空にしました！\n({success_count} サーバーに通知完了)"
+    
+    if failed_guilds:
+        result_msg += f"\n⚠️ 以下のサーバーは通知を送る権限があるチャンネルが見つかりませんでした:\n{', '.join(failed_guilds)}"
+        
+    await interaction.followup.send(result_msg)
+
+
+# ------------------------------------------------------------
 # コマンド: VC接続 / 退出
 # ------------------------------------------------------------
 @bot.command(name="vc_join")
